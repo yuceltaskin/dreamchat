@@ -1,0 +1,4 @@
+import {currentUser} from '../../../../lib/auth';
+import {NextResponse} from 'next/server';import {beginOAuth,cookieName,localOrigin,localRequest} from '../../../../lib/oauth';
+export const runtime='nodejs';
+export async function POST(req:Request){if(!localRequest(req,true))return new Response('Forbidden',{status:403});if(!await currentUser())return NextResponse.redirect(localOrigin()+'/login',303);try{const flow=beginOAuth();const res=NextResponse.redirect(flow.url,303);res.cookies.set(cookieName,flow.verifier,{httpOnly:true,sameSite:'lax',secure:localOrigin().startsWith('https:'),path:'/api/instagram',maxAge:600});res.headers.set('Cache-Control','no-store');res.headers.set('Referrer-Policy','no-referrer');return res;}catch{return NextResponse.redirect(localOrigin()+'/dashboard?view=settings&connection=setup',303);}}

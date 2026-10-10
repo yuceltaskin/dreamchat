@@ -1,0 +1,24 @@
+import Database from 'better-sqlite3';
+import {drizzle} from 'drizzle-orm/better-sqlite3';
+import {sqliteTable,text,integer,primaryKey} from 'drizzle-orm/sqlite-core';
+import {mkdirSync} from 'node:fs';import {dirname} from 'node:path';
+export const automations=sqliteTable('automations',{id:integer('id').primaryKey(),mediaId:text('media_id'),keyword:text('keyword').notNull(),name:text('name'),reelUrl:text('reel_url'),enabled:integer('enabled'),publicReplies:text('public_replies'),openingMessage:text('opening_message'),followMessage:text('follow_message'),finalMessage:text('final_message'),finalUrl:text('final_url'),requireFollow:integer('require_follow')});
+export const contacts=sqliteTable('contacts',{id:text('id').notNull(),automationId:integer('automation_id').notNull(),state:text('state').notNull(),follow:text('follow')},t=>[primaryKey({columns:[t.id,t.automationId]})]);
+export const events=sqliteTable('events',{id:text('id').primaryKey(),automationId:integer('automation_id'),type:text('type').notNull(),status:text('status').notNull(),createdAt:text('created_at').notNull()});
+const path=process.env.DATABASE_PATH||'data/app.db';mkdirSync(dirname(path),{recursive:true});
+export const sqlite=new Database(path);sqlite.pragma('busy_timeout = 5000');sqlite.pragma('journal_mode = WAL');
+sqlite.transaction(()=>{
+ sqlite.exec(`CREATE TABLE IF NOT EXISTS automations(id INTEGER PRIMARY KEY,media_id TEXT,keyword TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS contacts(id TEXT PRIMARY KEY,state TEXT NOT NULL,follow TEXT);
+ CREATE TABLE IF NOT EXISTS events(id TEXT PRIMARY KEY,type TEXT NOT NULL,status TEXT NOT NULL,created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);`);
+ const cols=(t:string)=>(sqlite.prepare(`PRAGMA table_info(${t})`).all() as {name:string}[]).map(x=>x.name);
+ const additions:Record<string,string>={name:"TEXT NOT NULL DEFAULT 'DREAM Reel'",reel_url:"TEXT NOT NULL DEFAULT ''",enabled:'INTEGER NOT NULL DEFAULT 0',public_replies:"TEXT NOT NULL DEFAULT 'Gönderdim! DM kutuna bak ✨\nDM kutunu kontrol et 😊'",opening_message:"TEXT NOT NULL DEFAULT 'Selam! Rehberi almak için {keyword} yaz 😊'",follow_message:"TEXT NOT NULL DEFAULT 'Rehberi almak için hesabı takip et 🌾'",final_message:"TEXT NOT NULL DEFAULT 'Süper! Rehber burada ✨'",final_url:"TEXT NOT NULL DEFAULT ''",flow_json:"TEXT NOT NULL DEFAULT ''",require_follow:'INTEGER NOT NULL DEFAULT 1'};
+ const old=cols('automations');for(const [key,def] of Object.entries(additions))if(!old.includes(key))sqlite.exec(`ALTER TABLE automations ADD COLUMN ${key} ${def}`);
+ if(!cols('events').includes('automation_id'))sqlite.exec('ALTER TABLE events ADD COLUMN automation_id INTEGER NOT NULL DEFAULT 1');
+ if(!cols('contacts').includes('automation_id'))sqlite.exec(`ALTER TABLE contacts RENAME TO contacts_legacy; CREATE TABLE contacts(id TEXT NOT NULL,automation_id INTEGER NOT NULL,state TEXT NOT NULL,follow TEXT,PRIMARY KEY(id,automation_id));INSERT INTO contacts SELECT id,1,state,follow FROM contacts_legacy;DROP TABLE contacts_legacy;`);
+ sqlite.exec(`CREATE TABLE IF NOT EXISTS reels(id TEXT PRIMARY KEY,caption TEXT,permalink TEXT,thumbnail_url TEXT,published_at TEXT);CREATE INDEX IF NOT EXISTS events_automation ON events(automation_id);`);
+ sqlite.prepare("INSERT OR IGNORE INTO automations(id,media_id,keyword,final_url,enabled) VALUES(1,?,'DREAM',?,?)").run(process.env.INSTAGRAM_MEDIA_ID||'',process.env.NOTION_URL||'',process.env.INSTAGRAM_MEDIA_ID&&process.env.NOTION_URL?1:0);
+ if(!old.includes('final_url'))sqlite.prepare("UPDATE automations SET final_url=?,enabled=CASE WHEN media_id<>'' AND ?<>'' THEN 1 ELSE 0 END WHERE id=1").run(process.env.NOTION_URL||'',process.env.NOTION_URL||'');
+}).immediate();
+export const db=drizzle(sqlite,{schema:{automations,contacts,events}});
+export type Automation={id:number;media_id:string;keyword:string;name:string;reel_url:string;enabled:number;public_replies:string;opening_message:string;follow_message:string;final_message:string;final_url:string;require_follow:number;flow_json?:string};

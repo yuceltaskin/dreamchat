@@ -1,0 +1,2 @@
+import type {ReactNode} from 'react';import './globals.css';import './product.css';import './brand.css';
+export const metadata={title:'Dreamchat — Sen içerik üret. Sohbet aksın.',description:'Instagram yorumlarını anlamlı sohbetlere dönüştür. Reel bazında akışlar, takip kontrolü ve içerik paylaşımı.'};export default function Layout({children}:{children:ReactNode}){return <html lang="tr" data-scroll-behavior="smooth"><body>{children}</body></html>}

@@ -1,0 +1,30 @@
+{
+  "name": "instagram-dream-automation",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --hostname 127.0.0.1",
+    "build": "next build",
+    "start": "next start --hostname 127.0.0.1",
+    "test": "node --env-file=.env.local --import tsx scripts/test.ts",
+    "fake-webhook": "node --env-file=.env.local --import tsx scripts/fake-webhook.ts",
+    "webhook-proxy": "node scripts/webhook-proxy.mjs",
+    "test:auth": "node --import tsx scripts/auth-test.ts",
+    "test:flow": "node --import tsx scripts/flow-test.ts",
+    "poll-meta": "node --env-file=.env.local --import tsx scripts/poll-meta.ts"
+  },
+  "dependencies": {
+    "next": "^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "drizzle-orm": "^0.45.3",
+    "better-sqlite3": "^12.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.0",
+    "tsx": "^4.20.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/better-sqlite3": "^7.6.0"
+  },
+  "type": "module"
+}

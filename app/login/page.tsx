@@ -1,0 +1,1 @@
+import {AuthForm} from '../components/auth-form';import {currentUser} from '../../lib/auth';import {redirect} from 'next/navigation';export default async function Login(){if(await currentUser())redirect('/dashboard');return <AuthForm signup={false}/>}

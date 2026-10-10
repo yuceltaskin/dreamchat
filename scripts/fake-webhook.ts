@@ -1,0 +1,10 @@
+import {createHmac} from 'node:crypto';import {sqlite,type Automation} from '../lib/db';import {mockMode,accountId} from '../lib/connection';
+if(!mockMode())throw Error('Fake webhooks require MOCK_MODE=true');
+if(!process.env.LOCAL_TEST_SIGNING_SECRET)throw Error('LOCAL_TEST_SIGNING_SECRET missing');
+const a=sqlite.prepare('SELECT * FROM automations WHERE id=?').get(Number(process.argv[2]||1)) as Automation|undefined;
+if(!a?.enabled||!a.media_id||!a.final_url)throw Error('Önce panelden Reel, link ve aktif otomasyon yapılandır. Sonra otomasyon ID’sini argüman olarak ver.');
+const id=`local-${Date.now()}`,entry=accountId()||'local-test-account';
+const send=async(payload:unknown)=>{const body=JSON.stringify(payload);const r=await fetch('http://127.0.0.1:3000/api/meta/webhook',{method:'POST',headers:{'Content-Type':'application/json','x-hub-signature-256':'sha256='+createHmac('sha256',process.env.LOCAL_TEST_SIGNING_SECRET!).update(body).digest('hex')},body});if(!r.ok)throw Error(`Webhook ${r.status}: ${await r.text()}`);};
+const c={object:'instagram',entry:[{id:entry,changes:[{field:'comments',value:{id,text:a.keyword,from:{id},media:{id:a.media_id}}}]}]};await send(c);await send(c);
+for(const [i,text] of [`${a.keyword} ${a.id}`,`TAKİP ETTİM ${a.id}`].entries())await send({object:'instagram',entry:[{id:entry,messaging:[{sender:{id},timestamp:Date.now(),message:{mid:`${id}-${i}`,text}}]}]});
+console.log(`PASS: signed HTTP sequence for automation ${a.id}; simulation records visible on dashboard`);

@@ -1,0 +1,1 @@
+import type {ReactNode} from 'react';import {redirect} from 'next/navigation';import {requireUser} from '../../lib/auth';import {Tour} from '../components/tour';export default async function DashboardLayout({children}:{children:ReactNode}){const user=await requireUser();if(!user.onboarded)redirect('/onboarding');return <>{children}<Tour auto={!user.toured} name={user.name}/></>}
