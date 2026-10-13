@@ -8,3 +8,5 @@ data/
 *.db-shm
 *.tsbuildinfo
 .DS_Store
+
+.pages-build/
